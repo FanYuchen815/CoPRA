@@ -44,8 +44,8 @@ git clone git@github.com:lbcb-sci/RiNALMo.git
 cd RiNALMo
 pip install -e .
 ```
-## 📖 Datasets and weights for PRA
-Here, we provide our proposed datasets, including PRA310, PRA201 and PRI30k together with an mCSM_RNA dataset, you can easily access them through 🤗Huggingface: [/Jesse7/CoPRA_data](https://huggingface.co/datasets/Jesse7/CoPRA_data/tree/main). The only difference between PRA201 and PRA310 are the selected samples, thus the PRA201 labels and splits are in PRA310/splits/PRA201.csv. Download these datasets at datasets/ folder.
+## 📖 Datasets and model weights for Protein-RNA binding affinity prediction
+Here, we first provide our proposed datasets, including PRA310, PRA201 and PRI30k together with an mCSM_RNA dataset, you can easily access them through 🤗Huggingface: [/Jesse7/CoPRA_data](https://huggingface.co/datasets/Jesse7/CoPRA_data/tree/main). The only difference between PRA201 and PRA310 are the selected samples, thus the PRA201 labels and splits are in PRA310/splits/PRA201.csv. Download these datasets at datasets/ folder.
 
 The number of samples of the original dataset is shown below, we take PRA as the abbreviation of Protein-RNA binding affinity:
 
@@ -55,7 +55,6 @@ The number of samples of the original dataset is shown below, we take PRA as the
 | PRA201 | PRA (pair-only) | 201 |
 | PRI30k | Unsupervised complexes | 30006 |
 | mCSM-RNA | Mutation effect on PRA | 79 |
-
 
 
 We also provide a five-fold model checkpoints after pretraining Co-Former with PRI30k and finetune it with PRA310, and they can also be downloaded through 🤗Huggingface: [/Jesse7/CoPRA](https://huggingface.co/Jesse7/CoPRA). This repository also contains a pretrained RiNALMo-650M weights. Download these weights at weights/ folder.
@@ -69,6 +68,11 @@ The performance of 5-fold cross validation on PRA310 reaches state-of-the-art, a
 ## 🚀 Training on the protein-RNA datasets
 
 **Note:** It is normal that the first epoch for training on a new dataset is relatively slow, because we need to conduct the caching procedure.
+
+### Run 5-fold inference on PRA310
+```
+python run.py test finetune --model_config ./config/models/copra.yml --data_config ./config/datasets/PRA310.yml --run_config ./config/runs/test_basic.yml
+```
 
 ### Run finetune on PRA310
 ```

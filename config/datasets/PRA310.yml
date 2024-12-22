@@ -15,9 +15,7 @@ strategy: separate
 
 transform:
   - type: select_atom
-    resolution: backbone  # [backbone, backbone+CB, C_Only]
-  # - type: interface_max_size_patch
-  #   max_size: 512
+    resolution: backbone
   - type: selected_region_with_distmap
     patch_size: 256
   - type: subtract_center_of_mass
