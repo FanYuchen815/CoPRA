@@ -19,7 +19,7 @@
 </p>
 This is the official implementation of CoPRA: Bridging Cross-domain Pretrained Sequence Models with Complex Structures for Protein-RNA Binding Affinity Prediction (AAAI 2025)
 
-<img src="./assets/figure2.jpg" alt="Overview of CoPRA" width="800">
+<img src="./assets/model_overview.jpg" alt="Overview of CoPRA" width="800">
 
 
 
@@ -60,7 +60,10 @@ The number of samples of the original dataset is shown below, we take PRA as the
 
 We also provide a five-fold model checkpoints after pretraining Co-Former with PRI30k and finetune it with PRA310, and they can also be downloaded through 🤗Huggingface: [/Jesse7/CoPRA](https://huggingface.co/Jesse7/CoPRA). This repository also contains a pretrained RiNALMo-650M weights. Download these weights at weights/ folder.
 
-The performance of 5-fold inference on PRA310 is 
+The performance of 5-fold inference on PRA310 reaches state-of-the-art, and here is the comparison:
+
+<img src="./assets/results_on_PRA.png" alt="Results on PRA" width="800">
+
 
 
 ## 🚀 Training on the protein-RNA datasets
