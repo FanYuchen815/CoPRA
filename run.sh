@@ -1,1 +1,0 @@
-python run.py finetune --model_config ./config/models/ipa.yml --data_config ./config/datasets/pdbbind_struct.yml --run_config ./config/runs/finetune_struct.yml
