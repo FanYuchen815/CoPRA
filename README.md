@@ -60,7 +60,7 @@ The number of samples of the original dataset is shown below, we take PRA as the
 
 We also provide a five-fold model checkpoints after pretraining Co-Former with PRI30k and finetune it with PRA310, and they can also be downloaded through 🤗Huggingface: [/Jesse7/CoPRA](https://huggingface.co/Jesse7/CoPRA). This repository also contains a pretrained RiNALMo-650M weights. Download these weights at weights/ folder.
 
-The performance of 5-fold inference on PRA310 reaches state-of-the-art, and here is the comparison:
+The performance of 5-fold cross validation on PRA310 reaches state-of-the-art, and here is the comparison:
 
 <img src="./assets/results_on_PRA.png" alt="Results on PRA" width="800">
 
