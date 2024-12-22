@@ -3,16 +3,14 @@ import torch
 import esm
 from rinalmo.config import model_config
 from rinalmo.model.model import RiNALMo
-from rinalmo.data.alphabet import Alphabet
 from models.register import ModelRegister
-from torchsummary import summary
 from peft import (
     LoraConfig,
     get_peft_model,
 )
 from models.lora_tune import LoRAESM, LoRARiNALMo, ESMConfig, RiNALMoConfig
 from models.components.valina_transformer import Transformer
-from models.esm_rinalmo_struct import cat_pad, segment_cat_pad
+from models.model import cat_pad, segment_cat_pad
 R = ModelRegister()
 
 def load_esm(esm_type):
@@ -90,7 +88,6 @@ class ESM2RiNALMo(nn.Module):
             nn.init.normal_(self.rna_embedding)
             nn.init.normal_(self.complex_embedding)
         if lora_tune:
-            print("Getting Lora!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
             # copied from LongLoRA
             rinalmo_lora_config = LoraConfig(
                 r=lora_rank,
@@ -121,14 +118,12 @@ class ESM2RiNALMo(nn.Module):
         self.pooling = pooling
         self.pred_head = nn.Sequential(
             nn.Linear(self.complex_dim, self.feat_size), nn.ReLU(),
-            # nn.Linear(self.feat_size, self.feat_size), nn.ReLU(),
             nn.Linear(self.feat_size, output_dim)
         )
         if self.vallina:
             print("Using vallina version!")
             self.cat_pred_head = nn.Sequential(
             nn.Linear(self.cat_size, self.feat_size), nn.ReLU(),
-            # nn.Linear(self.feat_size, self.feat_size), nn.ReLU(),
             nn.Linear(self.feat_size, output_dim) 
             )
 

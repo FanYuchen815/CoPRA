@@ -1,6 +1,6 @@
 from data.sequence_dataset import CustomSeqCollate
 from data.structure_dataset import CustomStructCollate
-from data.biolip_dataset import BioLiPStructCollate
+from data.pri30k_dataset import PRI30kStructCollate
 from data import DataRegister
 import pytorch_lightning as pl
 import diskcache
@@ -16,7 +16,7 @@ def get_dataset(data_args:dict=None):
 def get_collate(dataset_type):
     collate_dict = {'sequence_dataset': CustomSeqCollate,
                     'structure_dataset': CustomStructCollate,
-                    'biolip_dataset': BioLiPStructCollate,
+                    'pri30k_dataset': PRI30kStructCollate,
                     }
     return collate_dict[dataset_type]
 

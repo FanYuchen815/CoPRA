@@ -1,8 +1,7 @@
 dataset_type: 'structure_dataset'
-# df_path: '/home/HR/PIXberts/datasets/PNA350/splits_corrected/merge_filtered_5_fold_dG_restrict.csv'
-df_path: '/home/HR/PIXberts/datasets/mCSM_RNA/splits/blindtest_no_mut.csv'
+df_path: './datasets/mCSM_RNA/splits/blindtest.csv'
 batch_size: 8
-data_root: '/home/HR/PIXberts/datasets/mCSM_RNA/PDBs'
+data_root: './datasets/mCSM_RNA/PDBs'
 num_workers: 2
 col_prot_chain: 'Protein chains'
 col_na_chain: 'RNA chains'
@@ -18,9 +17,7 @@ strategy: separate
 
 transform:
   - type: select_atom
-    resolution: backbone  # [backbone, backbone+CB, C_Only]
-  # - type: interface_max_size_patch
-  #   max_size: 512
+    resolution: backbone
   - type: selected_region_with_distmap
     patch_size: 256
   - type: subtract_center_of_mass

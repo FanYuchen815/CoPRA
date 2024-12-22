@@ -1,8 +1,8 @@
-name: pixberts-new
+name: copra_h
 channels:
-  - conda-forge
-  - pytorch
   - pytorch3d
+  - pytorch
+  - conda-forge
   - nvidia
   - pyg
 dependencies:
@@ -23,19 +23,18 @@ dependencies:
   - wandb
   - easydict=1.9
   - matplotlib=3.8.0
-  - pytorch-scatter
   - pytorch_geometric
+  - pytorch-scatter
   - pytorch-sparse
   - pytorch-cluster
   - pip:
     - biopython==1.84
-    - fair-esm
+    - fair-esm==2.0.0
     - tree==0.2.4
     - seaborn==0.13.2
     - triton==2.1.0
-    - flash-attn==2.5.9
+    - torchsummary==1.5.1
+    - peft==0.14.0
     - biotite==0.41.2
     - cpdb-protein==0.2.0
-    # - torch_cluster==1.6.3
-    # - -e git+https://github.com/lbcb-sci/RiNALMo.git
     - -i https://pypi.tuna.tsinghua.edu.cn/simple

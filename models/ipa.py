@@ -5,9 +5,8 @@ from models.encoders.single import PerResidueEncoder
 from models.encoders.pair import ResiduePairEncoder
 from models.encoders.attn import GAEncoder
 from models.register import ModelRegister
-from models.esm_rinalmo_struct import load_esm, load_rinalmo, segment_cat_pad, cat_pad
+from models.model import load_esm, load_rinalmo, segment_cat_pad, cat_pad
 from models.lora_tune import LoRAESM, LoRARiNALMo, ESMConfig, RiNALMoConfig
-import transformers
 from peft import (
     LoraConfig,
     get_peft_model,

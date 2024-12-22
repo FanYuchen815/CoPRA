@@ -97,7 +97,7 @@ class StructureDataset(Dataset):
             if self.mut:
                 structure_id += '_' + row['MUTATION']
             if self.diskcache is None or structure_id not in self.diskcache:
-                print("Processing:", structure_id)
+                # print("Processing:", structure_id)
                 prot_chains = row[self.col_prot_chain].split(',')
  
                 na_chains = row[self.col_na_chain].split(',')

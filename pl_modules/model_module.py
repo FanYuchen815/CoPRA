@@ -7,8 +7,7 @@ import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
 from models import ModelRegister
-from utils.metrics import ScalarMetricAccumulator, cal_accuracy, cal_precision, cal_recall, cal_pearson, cal_spearman, \
-                            cal_rmse, cal_mae, cal_weighted_loss, cal_auc, get_loss
+from utils.metrics import ScalarMetricAccumulator, cal_pearson, cal_spearman, cal_rmse, cal_mae, get_loss
 def get_model(model_args:dict=None):
     register = ModelRegister()
     model_args_ori = {}
@@ -150,33 +149,18 @@ class ModelModule(pl.LightningModule):
         # print("Validation:", results)
         if self.output_dir is not None:
             results.to_csv(os.path.join(self.output_dir, f'results_{self.valid_it}.csv'), index=False)
-        if self.l_type == 'regression':
-            y_pred = np.array(results[f'y_pred'])
-            y_true = np.array(results[f'y_true'])
-            pearson_all = np.abs(cal_pearson(y_pred, y_true))
-            spearman_all = np.abs(cal_spearman(y_pred, y_true))
-            rmse_all = cal_rmse(y_pred, y_true)
-            mae_all = cal_mae(y_pred, y_true)
-            print(f'[All_Task] Pearson {pearson_all:.6f} Spearman {spearman_all:.6f} RMSE {rmse_all:.6f} MAE {mae_all:.6f}')
-            
-            self.log(f'val/all_pearson', pearson_all, batch_size=self.batch_size, on_epoch=True, sync_dist=True)
-            self.log(f'val/all_spearman', spearman_all, batch_size=self.batch_size, on_epoch=True, sync_dist=True)
-            self.log(f'val/all_rmse', rmse_all, batch_size=self.batch_size, on_epoch=True, sync_dist=True)
-            self.log(f'val/all_mae', mae_all, batch_size=self.batch_size, on_epoch=True, sync_dist=True)
-
-        elif self.l_type == 'binary':
-            y_pred = np.array(results['y_pred'])
-            y_true = np.array(results['y_true'])
-            acc_all = cal_accuracy(y_pred, y_true)
-            auc_all = cal_auc(y_pred, y_true)
-            precision_all = cal_precision(y_pred, y_true)
-            recall_all = cal_recall(y_pred, y_true)
-            print(f'[All_Task] ACC {acc_all:.6f} PRECISION {precision_all:.6f} RECALL {recall_all:.6f}')
-
-            self.log(f'val/all_acc', acc_all, batch_size=self.batch_size, on_epoch=True, sync_dist=True)
-            self.log(f'val/all_auc', auc_all, batch_size=self.batch_size, on_epoch=True, sync_dist=True)
-            self.log(f'val/all_precision', precision_all, batch_size=self.batch_size, on_epoch=True, sync_dist=True)
-            self.log(f'val/all_recall', recall_all, batch_size=self.batch_size, on_epoch=True, sync_dist=True)
+        y_pred = np.array(results[f'y_pred'])
+        y_true = np.array(results[f'y_true'])
+        pearson_all = np.abs(cal_pearson(y_pred, y_true))
+        spearman_all = np.abs(cal_spearman(y_pred, y_true))
+        rmse_all = cal_rmse(y_pred, y_true)
+        mae_all = cal_mae(y_pred, y_true)
+        print(f'[All_Task] Pearson {pearson_all:.6f} Spearman {spearman_all:.6f} RMSE {rmse_all:.6f} MAE {mae_all:.6f}')
+        
+        self.log(f'val/all_pearson', pearson_all, batch_size=self.batch_size, on_epoch=True, sync_dist=True)
+        self.log(f'val/all_spearman', spearman_all, batch_size=self.batch_size, on_epoch=True, sync_dist=True)
+        self.log(f'val/all_rmse', rmse_all, batch_size=self.batch_size, on_epoch=True, sync_dist=True)
+        self.log(f'val/all_mae', mae_all, batch_size=self.batch_size, on_epoch=True, sync_dist=True)
     
         val_loss = rmse_all * rmse_all
         self.log('val_loss', val_loss, batch_size=self.batch_size, on_epoch=True, sync_dist=True)
@@ -206,34 +190,19 @@ class ModelModule(pl.LightningModule):
         results = pd.DataFrame(self.results)
         if self.output_dir is not None:
             results.to_csv(os.path.join(self.output_dir, f'results_test.csv'), index=False)
-        if self.l_type == 'regression':
-            y_pred = np.array(results[f'y_pred'])
-            y_true = np.array(results[f'y_true'])
-            pearson_all = np.abs(cal_pearson(y_pred, y_true))
-            spearman_all = np.abs(cal_spearman(y_pred, y_true))
-            rmse_all = cal_rmse(y_pred, y_true)
-            mae_all = cal_mae(y_pred, y_true)
-            print(f'[All_Task] Pearson {pearson_all:.6f} Spearman {spearman_all:.6f} RMSE {rmse_all:.6f} MAE {mae_all:.6f}')
-            
-            self.log(f'test/all_pearson', pearson_all, batch_size=self.batch_size, on_epoch=True, sync_dist=True)
-            self.log(f'test/all_spearman', spearman_all, batch_size=self.batch_size, on_epoch=True, sync_dist=True)
-            self.log(f'test/all_rmse', rmse_all, batch_size=self.batch_size, on_epoch=True, sync_dist=True)
-            self.log(f'test/all_mae', mae_all, batch_size=self.batch_size, on_epoch=True, sync_dist=True)
-            self.res = {"pearson": pearson_all,"spearman": spearman_all, "rmse": rmse_all, "mae": mae_all}
-        elif self.l_type == 'binary':
-            y_pred = np.array(results[f'y_pred'])
-            y_true = np.array(results[f'y_true'])
-            acc_all = cal_accuracy(y_pred, y_true)
-            auc_all = cal_auc(y_pred, y_true)
-            precision_all = cal_precision(y_pred, y_true)
-            recall_all = cal_recall(y_pred, y_true)
-            print(f'[All_Task] ACC {acc_all:.6f} PRECISION {precision_all:.6f} RECALL {recall_all:.6f} AUC {auc_all:.6f}')
-
-            self.log(f'test/all_acc', acc_all, batch_size=self.batch_size, on_epoch=True, sync_dist=True)
-            self.log(f'test/all_auc', auc_all, batch_size=self.batch_size, on_epoch=True, sync_dist=True)
-            self.log(f'test/all_precision', precision_all, batch_size=self.batch_size, on_epoch=True, sync_dist=True)
-            self.log(f'test/all_recall', recall_all, batch_size=self.batch_size, on_epoch=True, sync_dist=True)
-            self.res = {"acc": acc_all,"precision": precision_all, "recall": rmse_all, "auc": auc_all}
+        y_pred = np.array(results[f'y_pred'])
+        y_true = np.array(results[f'y_true'])
+        pearson_all = np.abs(cal_pearson(y_pred, y_true))
+        spearman_all = np.abs(cal_spearman(y_pred, y_true))
+        rmse_all = cal_rmse(y_pred, y_true)
+        mae_all = cal_mae(y_pred, y_true)
+        print(f'[All_Task] Pearson {pearson_all:.6f} Spearman {spearman_all:.6f} RMSE {rmse_all:.6f} MAE {mae_all:.6f}')
+        
+        self.log(f'test/all_pearson', pearson_all, batch_size=self.batch_size, on_epoch=True, sync_dist=True)
+        self.log(f'test/all_spearman', spearman_all, batch_size=self.batch_size, on_epoch=True, sync_dist=True)
+        self.log(f'test/all_rmse', rmse_all, batch_size=self.batch_size, on_epoch=True, sync_dist=True)
+        self.log(f'test/all_mae', mae_all, batch_size=self.batch_size, on_epoch=True, sync_dist=True)
+        self.res = {"pearson": pearson_all,"spearman": spearman_all, "rmse": rmse_all, "mae": mae_all}
         print("Self.Res:", self.res)
         # test_loss = self.scalar_accum.get_average('loss')
         test_loss = rmse_all * rmse_all

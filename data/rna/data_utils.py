@@ -193,7 +193,7 @@ def chain_to_array(
     sequence = "".join(nt_list)
     seq_type = np.array(seq_type, dtype=np.int32)
     seq_mask = np.array(seq_mask, dtype=np.bool_)
-    if len(sequence) <= 1: return  # do not include single bases as data points
+    # if len(sequence) <= 1: return  # do not include single bases as data points
 
     # get 3D coordinates (Not centered at origin)
     coords, coord_mask = df_to_array(df, center=False)
@@ -321,7 +321,7 @@ def cif_to_array(
     dico = MMCIF2Dict(filepath)
     df = pd.DataFrame.from_dict(dico, orient='index')
     df = df.transpose()
-    df = df[df['_atom_site.group_PDB'] != 'HETATM']
+
     rnas = defaultdict(dict)
     new_df_dict = defaultdict(list)
     if valid_chains is None:
@@ -334,7 +334,8 @@ def cif_to_array(
     new_df_dict['y_coord'] = list(df["_atom_site.Cartn_y"])[0]
     new_df_dict['z_coord'] = list(df["_atom_site.Cartn_z"])[0]
     new_df_dict['insertion'] = list(df["_atom_site.pdbx_PDB_ins_code"])[0]
-    new_df_dict['alt_loc'] = list(df["_atom_site.label_alt_id "])[0]
+    new_df_dict['alt_loc'] = list(df["_atom_site.label_alt_id"])[0]
+    new_df_dict['record_name'] = list(df['_atom_site.group_PDB'])[0]
     # print(new_df_dict)
     new_df = pd.DataFrame(new_df_dict)
     if not keep_insertions:
@@ -376,7 +377,7 @@ def remove_insertions(
     df = df[~duplicates]
 
     return filter_dataframe(
-        df, by_column="insertion", list_of_values=[""], boolean=True
+        df, by_column="insertion", list_of_values=["","?"], boolean=True
     )
 
 

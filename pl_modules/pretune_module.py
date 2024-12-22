@@ -7,8 +7,7 @@ import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
 from models import ModelRegister
-from utils.metrics import ScalarMetricAccumulator, cal_accuracy, cal_precision, cal_recall, cal_pearson, cal_spearman, \
-                            cal_rmse, cal_mae, cal_weighted_loss, cal_auc, get_loss
+from utils.metrics import ScalarMetricAccumulator
                             
 def get_model(model_args:dict=None):
     register = ModelRegister()

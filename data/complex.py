@@ -6,7 +6,7 @@ import io
 import warnings
 warnings.filterwarnings("ignore")
 from dataclasses import dataclass
-sys.path.append('/home/HR/PIXberts/')
+sys.path.append('/home/CoPRA/')
 import data.protein.proteins as proteins
 from data.protein.atom_convert import atom37_to_atom14
 from data.protein.proteins import chains_from_cif_string, chains_from_pdb_string

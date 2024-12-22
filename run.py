@@ -20,6 +20,7 @@ from pytorch_lightning.loggers import CSVLogger, WandbLogger
 from pytorch_lightning.callbacks import TQDMProgressBar, EarlyStopping, ModelCheckpoint, ModelSummary
 from pytorch_lightning.strategies.ddp import DDPStrategy
 from pl_modules import ModelModule, DataModule, PretuneModule, DDGModule
+from collections import defaultdict
 
 torch.set_num_threads(16)
 
@@ -82,10 +83,6 @@ class LightningRunner(object):
             output_dir = Path(output_dir)
             log_dir = output_dir / f'log_fold_{k}'
             data_module = DataModule(dataset_args=self.dataset_args, **self.dataset_args, col_group=f'fold_{k}')
-            # data_module.setup()
-            # data_loader = data_module.train_dataloader()
-            # for i in data_loader:
-            #     print("HELLO!")
 
             # Setup model module
             model = self.select_module(stage, log_dir)
@@ -107,11 +104,9 @@ class LightningRunner(object):
                 max_epochs=self.run_args.epochs,
                 logger=logger,
                 callbacks=[
-                    # EarlyStopping(monitor="val_loss", mode="min", patience=self.run_args.patience, strict=False),
+                    EarlyStopping(monitor="val_loss", mode="min", patience=self.run_args.patience, strict=False),
                     ModelCheckpoint(dirpath=(log_dir / 'checkpoint'), filename='{epoch}-{val_loss:.3f}',
                                     monitor="val_loss", mode="min", save_last=True, save_top_k=3),
-                    # ModelSummary(max_depth=2)
-                    # TQDMProgressBar(refresh_rate=1)
                 ],
                 # gradient_clip_val=self.model_args.train.max_grad_norm if self.model_args.train.max_grad_norm is not None else None,
                 # gradient_clip_algorithm='norm' if self.model_args.train.max_grad_norm is not None else None,
@@ -136,8 +131,9 @@ class LightningRunner(object):
 
     def test(self, stage='mutation'):
         print("Args:", self.run_args, self.dataset_args, self.model_args)
-        output_dir, ckpt, gpus = (self.run_args.output_dir, self.run_args.ckpt,
+        output_dir, ckpts, gpus = (self.run_args.output_dir, self.run_args.ckpts,
                                    self.run_args.gpus)
+        run_results = []
         for k in range(self.run_args.num_folds):
             output_dir = Path(output_dir)
             log_dir = output_dir / f'log_fold_{k}'
@@ -159,7 +155,13 @@ class LightningRunner(object):
                 strategy=strategy,
             )
 
-            _ = trainer.test(model=model, ckpt_path=ckpt, datamodule=data_module)
+            _ = trainer.test(model=model, ckpt_path=ckpts[k], datamodule=data_module)
+            res = model.res
+            run_results.append(res)
+        if trainer.global_rank == 0:
+            results_df = pd.DataFrame(run_results)
+            print(results_df.describe())
+            
 
 if __name__ == '__main__':
     fire.Fire(LightningRunner)
