@@ -29,7 +29,7 @@ Please do not hesitate to contact us or create an issue/PR if you have any quest
 
 ## 🛠️ Installation
 
-**Step 1**. Clone this repository and setup the environment.
+**Step 1**. Clone this repository and setup the environment. We recommend you to install the dependencies via the fast package management tool [mamba](https://mamba.readthedocs.io/en/latest/mamba-installation.html) (you can also replace the command 'mamba' with 'conda' to install them). Generally, CoPRA works with Python 3.10.14 and PyTorch version 2.1.2.
 ```
 git@github.com:hanrthu/CoPRA.git
 cd CoPRA
