@@ -13,8 +13,6 @@ import wandb
 import time
 from easydict import EasyDict
 import torch
-# import sys
-# sys.path.append('/home/HR/PIXberts/')
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import CSVLogger, WandbLogger
 from pytorch_lightning.callbacks import TQDMProgressBar, EarlyStopping, ModelCheckpoint, ModelSummary
@@ -51,7 +49,6 @@ class LightningRunner(object):
     def save_model(self, model, output_dir, trainer):
         print("Best Model Path:", trainer.checkpoint_callback.best_model_path)
         module = ModelModule.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
-        # module = model.load_from_checkpoint('outputs/unibind/fold_0/log/checkpoint/epoch=0-val_loss=7.214.ckpt')
         if trainer.global_rank == 0:
             best_model = module.model
             (output_dir / 'model_data.json').write_text(json.dumps(vars(self.dataset_args), indent=2))
@@ -89,7 +86,7 @@ class LightningRunner(object):
             # Trainer setting
             name = self.run_args.run_name + time.strftime("%Y-%m-%d-%H-%M-%S")
             if self.run_args.wandb:
-                wandb.init(project='pixberts', name=name)
+                wandb.init(project='copra', name=name)
                 logger = WandbLogger()
             else:
                 logger = CSVLogger(str(log_dir))

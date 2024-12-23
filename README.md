@@ -67,7 +67,9 @@ The performance of 5-fold cross validation on PRA310 reaches state-of-the-art, a
 
 ## 🚀 Training on the protein-RNA datasets
 
-**Note:** It is normal that the first epoch for training on a new dataset is relatively slow, because we need to conduct the caching procedure.
+**Note1:** It is normal that the first epoch for training on a new dataset is relatively slow, because we need to conduct the caching procedure.
+
+**Note2:** We also support LoRA tuning and all-param tuning. For LoRA tuning, just specify `lora_tune: true` in `./config/models/copra.yml`. For all-param tuning, just specify `fix_lms: false` in `./config/models/copra.yml`.
 
 ### Run 5-fold inference on PRA310
 ```

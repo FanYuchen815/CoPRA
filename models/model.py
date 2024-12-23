@@ -117,7 +117,6 @@ class ESM2RiNALMo(nn.Module):
                  lora_rank=16,
                  lora_alpha=32,
                  representation_layer=33,
-                 stage='finetune',
                  dist_dim=40,
                  **kwargs
                  ):
@@ -128,7 +127,6 @@ class ESM2RiNALMo(nn.Module):
         self.c_former = CoFormer(**kwargs['coformer'])
         self.representation_layer = representation_layer
         self.proj = 0
-        self.stage = stage
         if esm_feat_size != rinalmo_feat_size:
             self.proj = 1
             self.project_feat= nn.Linear(esm_feat_size, rinalmo_feat_size)
@@ -193,7 +191,6 @@ class ESM2RiNALMo(nn.Module):
         )
         # For mask distance pretraining
         self.mask_token = nn.Parameter(torch.randn(size=(1, pair_dim)))
-        # if self.stage == 'pretune':
         self.dist_head = nn.Sequential(
             nn.Linear(pair_dim, self.feat_size), nn.ReLU(),
             nn.Linear(self.feat_size, dist_dim)
@@ -215,7 +212,6 @@ class ESM2RiNALMo(nn.Module):
 
         prot_embedding = prot_embedding.float()
         na_embedding = na_embedding.float()
-        # print("Original Embedding:", prot_embedding, na_embedding)
         max_len = input['pos_atoms'].shape[1]
         # Adjust the embeddings from LMs for CoFormer
         if 'patch_idx' in input:
@@ -232,7 +228,6 @@ class ESM2RiNALMo(nn.Module):
 
         out_embedding = self.proj_cplx(out_embedding)
         key_padding_mask = ~masks
-        # key_padding_mask = prot_mask.bool()
         
         aa=input['restype']
         res_nb=input['res_nb']

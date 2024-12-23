@@ -6,12 +6,9 @@ import torch.nn.functional as F
 import torch_geometric
 from torch_geometric.utils import coalesce, to_undirected
 import torch_cluster
-import sys
-sys.path.append('/home/HR/PIXberts/')
-# print(sys.path)
 from data.rna.data_utils import *
 
-from data.rna.base_constants import RNA_NUCLEOTIDES, RNA_ATOMS, DISTANCE_EPS
+from data.rna.base_constants import RNA_NUCLEOTIDES, DISTANCE_EPS
 
 
 class RNAGraphFeaturizer(object):
@@ -571,11 +568,3 @@ def normalize(tensor, dim=-1):
     '''
     return torch.nan_to_num(
         torch.div(tensor, torch.linalg.norm(tensor, dim=dim, keepdim=True)))
-
-
-if __name__ == '__main__':
-    
-    featurelizer = RNAGraphFeaturizer()
-    a, b = featurelizer.featurize_from_pdb_file('/home/HR/PIXberts/datasets/PNA350/PDBs_filtered/1A4T.pdb')
-    print(a)
-    print(b['coords_list'].shape)

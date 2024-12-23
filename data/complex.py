@@ -166,6 +166,6 @@ def complex_merge(protein, rna):
     return complex_dict
 
 if __name__ == '__main__':
-    comp = ComplexInput.from_path('/home/HR/PIXberts/datasets/PNA350/PDBs_filtered/1RPU.pdb')
+    comp = ComplexInput.from_path('./datasets/PRA310/PDBs/1RPU.pdb')
     print("Complex:", comp)
     print(comp.atom_positions[1])

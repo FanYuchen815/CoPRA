@@ -1,12 +1,8 @@
-import sys
-from data.complex import ComplexInput
 from data.register import DataRegister
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 import pandas as pd
 import esm
 import torch
-import yaml
-from tqdm import tqdm
 from rinalmo.data.constants import *
 from rinalmo.data.alphabet import Alphabet
 from tqdm import tqdm
@@ -68,20 +64,10 @@ class PRI30kDataset(Dataset):
         na_chains = [row[self.col_na_chain]]
         structure_id = structure_id + '_' + prot_chains[0] + '_' + na_chains[0]
         if self.diskcache is None or structure_id not in self.diskcache:
-            # print("3UZS!")
-            #  or structure_id in ['3UZS', '5W6V']
             structure_name = structure_id + '.cif'
             pdb_path = os.path.join(self.data_root, structure_name)
             
-            cplx = _process_structure(pdb_path, structure_id, prot_chains, na_chains, gpu='cuda:5')
-            
-            # binding_sites = row[self.col_binding_site].split(',')
-            # label_site = torch.zeros(len(cplx['seq'])).long()
-            # for site in binding_sites:
-            #     res = site[0]
-            #     num = int(site[1:])
-            #     # assert cplx['seq'][num-1] == res
-            #     label_site[num-1] = 1
+            cplx = _process_structure(pdb_path, structure_id, prot_chains, na_chains, gpu='cuda:0')
             
             ligand_id = row[self.col_prot_name] + '_' + row[self.col_na_chain]
             L = len(cplx['seq'])
@@ -104,22 +90,18 @@ class PRI30kDataset(Dataset):
             item = {
                 'ligand_id': ligand_id, # no need to pad
                 'atom_min_dist': atom_min_dist, # needs 2D padding
-                # 'label_site': label_site, # needs padding 
                 'max_prot_length': max_prot_length, # will be ignored in batching
                 'max_na_length': max_na_length, # will be ignored in batching
                 'can_bind': row[self.col_ligand] # no need to pad
             }
             
             cplx.update(item)
-            # print("Complex {} is:".format(i), cplx)
             if self.diskcache is not None:
-                # print("Writing!")
                 for key in cplx:
                     if isinstance(cplx[key], torch.Tensor):
                         cplx[key] = cplx[key].detach().cpu()
                 self.diskcache[structure_id] = cplx
             return cplx
-            # break
         else:
             return self.diskcache[structure_id]
 
@@ -128,12 +110,6 @@ class PRI30kDataset(Dataset):
     
     def __getitem__(self, idx):
         data = self.load_data(idx)
-        # print("Before Transform:", data)
-        # gpu = 'cuda:4'
-        # if gpu is not None:
-        #     for key in data:
-        #         if isinstance(data[key], torch.Tensor):
-        #             data[key] = data[key].to(gpu)
         if self.transform is not None:
             data = self.transform(data)
         return data
@@ -229,8 +205,7 @@ class PRI30kStructCollate(object):
                 for k, v in data.items()
                 if k in keys
             }
-            # print("Keys:", keys)
-            # print("Datapadded Keys:", data_padded.keys())
+
             for k in pad_2d:
                 data_padded[k] = self.pad_2d(data[k], max_length)
                 
@@ -244,7 +219,6 @@ class PRI30kStructCollate(object):
     def pad_for_berts(self, batch):
         prot_alphabet = esm.data.Alphabet.from_architecture("ESM-1b")
         na_alphabet = Alphabet(**na_alphabet_config)
-        # print("Batch:", batch)
         prot_chains = [len(item['prot_seqs']) for item in batch]
         na_chains = [len(item['rna_seqs']) for item in batch]
         max_item_prot_length = [item['max_prot_length'] for item in batch]
@@ -276,12 +250,9 @@ class PRI30kStructCollate(object):
                 prot_batch[curr_prot_idx, len(prot_seq_encode)+1] = prot_alphabet.eos_idx
                 curr_prot_idx += 1
             for na_seq in na_seqs:
-                # na_batch[curr_na_idx, 0] = na_alphabet.cls_idx
-                # NA encoder adds CLS and EOS by default
                 na_seq_encode = na_alphabet.encode(na_seq)
                 seq = torch.tensor(na_seq_encode, dtype=torch.int64)
                 na_batch[curr_na_idx, :len(seq)] = seq
-                # na_batch[curr_na_idx, len(na_seq_encode)+1] = na_alphabet.eos_idx
                 curr_na_idx += 1
 
         prot_mask = torch.zeros_like(prot_batch)
@@ -315,8 +286,4 @@ class PRI30kStructCollate(object):
         ligand_ids =  [item['ligand_id'] for item in data_list]
         can_bind_info = [item['can_bind'] for item in data_list]
         batch['clip_label'] = self.gen_clip_label(ligand_ids, can_bind_info)
-        # for key in batch:
-        #     if isinstance(batch[key], torch.Tensor):
-        #         batch[key] = batch[key].detach().cpu()
-        # batch['labels'] = batch['labels'].float()
         return batch

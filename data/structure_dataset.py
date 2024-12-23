@@ -1,12 +1,9 @@
-import sys
-sys.path.append('/home/HR/PIXberts')
 from data.complex import ComplexInput
 from data.register import DataRegister
 from torch.utils.data import Dataset
 import pandas as pd
 import esm
 import torch
-import yaml
 from tqdm import tqdm
 from rinalmo.data.constants import *
 from rinalmo.data.alphabet import Alphabet
@@ -97,7 +94,6 @@ class StructureDataset(Dataset):
             if self.mut:
                 structure_id += '_' + row['MUTATION']
             if self.diskcache is None or structure_id not in self.diskcache:
-                # print("Processing:", structure_id)
                 prot_chains = row[self.col_prot_chain].split(',')
  
                 na_chains = row[self.col_na_chain].split(',')
@@ -192,10 +188,6 @@ class StructureDataset(Dataset):
         # print("Before Transform:", data)
         if self.transform is not None:
             data = self.transform(data)
-        # for key in data:
-        #     if isinstance(data[key], torch.Tensor) or isinstance(data[key], str):
-        #         data[key] = data[key][:256]
-        # print("After Transform:", data)
         return data
 
 EXCLUDE_KEYS = ['labels', 'complex']
@@ -272,8 +264,6 @@ class CustomStructCollate(object):
                 for k, v in data.items()
                 if k in keys
             }
-            # print("Keys:", keys)
-            # print("Datapadded Keys:", data_padded.keys())
             for k in keys_not_pad:
                 data_padded[k] = data[k]
             data_padded['mask'] = self._get_pad_mask(data[self.length_ref_key].size(0), max_length)
@@ -284,7 +274,6 @@ class CustomStructCollate(object):
         prot_alphabet = esm.data.Alphabet.from_architecture("ESM-1b")
         na_alphabet = Alphabet(**na_alphabet_config)
         mut_flag = 0
-        # print("Batch:", batch)
         prot_chains = [len(item['prot_seqs']) for item in batch]
         na_chains = [len(item['rna_seqs']) for item in batch]
         
@@ -362,23 +351,6 @@ class CustomStructCollate(object):
         batch['na_mask'] = na_mask
         batch['strategy'] = self.strategy
         batch['labels'] = batch['labels'].float()
-        # print("This is my new batch!")
-        # for key, value in batch.items():
-        #     if isinstance(value, torch.Tensor):
-        #         print(key, value.shape)
-        #     else:
-        #         print(key, value)
         return batch
-    
-if __name__ == '__main__':
-    # print(os.path.exists('/home/HR/PIXberts/datasets/PNA350/splits/merge_filtered_demo.csv'))
-    df = pd.read_csv('/home/HR/PIXberts/datasets/PNA350/splits/merge_filtered_demo.csv')
-    df_train = df[df['fold_0'].isin(['train'])]
-    
-    with open('/home/HR/PIXberts/config/datasets/pdbbind_struct.yml', 'r') as f:
-        content = f.read()
-        config_dict = EasyDict(yaml.load(content, Loader=yaml.FullLoader))
-    train_dataset = StructureDataset(df_train, **config_dict, diskcache=None)
-    a = train_dataset[0]
     
     

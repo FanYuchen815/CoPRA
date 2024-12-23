@@ -1,14 +1,8 @@
-from pathlib import Path
-import dataclasses
 from dataclasses import dataclass, field
 from typing import Optional
-import sys
-sys.path.append('/home/HR/PIXberts/')
-import io
 from typing import Dict, Optional, List
 import numpy as np
-import scipy
-from data.rna.data_utils import pdb_to_array, get_backbone_coords, cif_to_array
+from data.rna.data_utils import pdb_to_array, cif_to_array
 
 
 @dataclass
@@ -86,8 +80,3 @@ class RNAInput:
         text = ', \n  '.join(texts)
         text = f'RNA(\n  {text}\n)'
         return text
-    
-    
-if __name__ == '__main__':
-    rna = RNAInput.from_path('/home/HR/PIXberts/datasets/BioLiP2/PDBs/1A1T_A_B.cif', valid_chains=['B'])
-    # print(rna["B"])

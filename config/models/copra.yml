@@ -10,7 +10,6 @@ model:
   lora_alpha: 32
   pair_dim: 40
   dist_dim: 40
-  # stage: pretune
   representation_layer: 33
   coformer: 
     embed_dim: 320

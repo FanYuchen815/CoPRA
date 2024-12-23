@@ -1,16 +1,13 @@
 import os
 import numpy as np
 import pandas as pd
-from typing import Any, List, Literal, Optional
+from typing import Any, List, Literal
 import torch
 import cpdb
 from collections import defaultdict
 from Bio.PDB.MMCIF2Dict import MMCIF2Dict
 import pandas as pd
 
-# from data.rna.sec_struct_utils import pdb_to_sec_struct
-
-import biotite
 from biotite.structure.io import load_structure
 from biotite.structure import sasa as get_sasa
 from biotite.structure import apply_residue_wise
