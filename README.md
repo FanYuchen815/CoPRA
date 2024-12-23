@@ -23,7 +23,7 @@ This is the official implementation of CoPRA: Bridging Cross-domain Pretrained S
 
 
 
-CoPRA is a state-of-the-art predictor of protein-RNA binding affinity. The framework of CoPRA is based on a protein language model and an RNA-language model, with complex structure as input. The model was pre-trained on the PRI30k dataset via a bi-scope stratyge and fine-tuned on PRA310. CoPRA can also be redirected to predict mutation effects, showing its strong per-structure prediction performance on mCSM_RNA dataset. Please see more details in [our paper](https://arxiv.org/abs/2409.03773).
+CoPRA is a state-of-the-art predictor of protein-RNA binding affinity. The framework of CoPRA is based on a protein language model and an RNA-language model, with complex structure as input. The model was pre-trained on the PRI30k dataset via a bi-scope stratege and fine-tuned on PRA310. CoPRA can also be redirected to predict mutation effects, showing its strong per-structure prediction performance on mCSM_RNA dataset. Please see more details in [our paper](https://arxiv.org/abs/2409.03773).
 
 Please do not hesitate to contact us or create an issue/PR if you have any questions or suggestions!
 
@@ -36,7 +36,7 @@ cd CoPRA
 mamba env create -f environment.yml
 ```
 
-**Step 2**. Install flash-attn and rinalmo with the following command, you may also need to download Rinalmo-650M model and place it at weights/ folder of this repo.
+**Step 2**. Install flash-attn and rinalmo with the following command, you may also need to download Rinalmo-650M model and place it at `./weights` folder of this repo.
 ```
 # Download flash-attn-2.6.3 wheel file at https://github.com/Dao-AILab/flash-attention/releases/download/v2.6.3/flash_attn-2.6.3+cu118torch2.1cxx11abiFALSE-cp310-cp310-linux_x86_64.whl
 pip install flash_attn-2.6.3+cu118torch2.1cxx11abiFALSE-cp310-cp310-linux_x86_64.whl
@@ -45,7 +45,7 @@ cd RiNALMo
 pip install -e .
 ```
 ## 📖 Datasets and model weights for Protein-RNA binding affinity prediction
-Here, we first provide our proposed datasets, including PRA310, PRA201 and PRI30k together with an mCSM_RNA dataset, you can easily access them through 🤗Huggingface: [/Jesse7/CoPRA_data](https://huggingface.co/datasets/Jesse7/CoPRA_data/tree/main). The only difference between PRA201 and PRA310 are the selected samples, thus the PRA201 labels and splits are in PRA310/splits/PRA201.csv. Download these datasets at datasets/ folder.
+Here, we first provide our proposed datasets, including PRA310, PRA201 and PRI30k together with an mCSM_RNA dataset, you can easily access them through 🤗Huggingface: [/Jesse7/CoPRA_data](https://huggingface.co/datasets/Jesse7/CoPRA_data/tree/main). The only difference between PRA201 and PRA310 are the selected samples, thus the PRA201 labels and splits are in PRA310/splits/PRA201.csv. Download these datasets and place them at `./datasets` folder.
 
 The number of samples of the original dataset is shown below, we take PRA as the abbreviation of Protein-RNA binding affinity:
 
@@ -57,7 +57,7 @@ The number of samples of the original dataset is shown below, we take PRA as the
 | mCSM-RNA | Mutation effect on PRA | 79 |
 
 
-We also provide a five-fold model checkpoints after pretraining Co-Former with PRI30k and finetune it with PRA310, and they can also be downloaded through 🤗Huggingface: [/Jesse7/CoPRA](https://huggingface.co/Jesse7/CoPRA). This repository also contains a pretrained RiNALMo-650M weights. Download these weights at weights/ folder.
+We also provide a five-fold model checkpoints after pretraining Co-Former with PRI30k and finetune it with PRA310, and they can also be downloaded through 🤗Huggingface: [/Jesse7/CoPRA](https://huggingface.co/Jesse7/CoPRA). This repository also contains a pretrained RiNALMo-650M weights. Download these weights at place them at `./weights` folder.
 
 The performance of 5-fold cross validation on PRA310 reaches state-of-the-art, and here is the comparison:
 
@@ -71,17 +71,17 @@ The performance of 5-fold cross validation on PRA310 reaches state-of-the-art, a
 
 ### Run 5-fold inference on PRA310
 ```
-python run.py test finetune --model_config ./config/models/copra.yml --data_config ./config/datasets/PRA310.yml --run_config ./config/runs/test_basic.yml
+python run.py test dG --model_config ./config/models/copra.yml --data_config ./config/datasets/PRA310.yml --run_config ./config/runs/test_basic.yml
 ```
 
 ### Run finetune on PRA310
 ```
-python run.py finetune --model_config ./config/models/copra.yml --data_config ./config/datasets/PRA310.yml --run_config ./config/runs/finetune_struct.yml
+python run.py finetune dG --model_config ./config/models/copra.yml --data_config ./config/datasets/PRA310.yml --run_config ./config/runs/finetune_struct.yml
 ```
 
 ### Run finetune on PRA201
 ```
-python run.py finetune --model_config ./config/models/copra.yml --data_config ./config/datasets/PRA201.yml --run_config ./config/runs/finetune_struct.yml
+python run.py finetune dG --model_config ./config/models/copra.yml --data_config ./config/datasets/PRA201.yml --run_config ./config/runs/finetune_struct.yml
 ```
 
 ### Run Bi-scope Pre-training on PRI30k
@@ -93,7 +93,7 @@ After pretraining, you can continue to finetune on a new dataset with the finetu
 ## 🚀 Zero-shot Blind-test on the protein-RNA mutation effect datasets
 
 ```
-python run.py test --model_config ./config/models/copra.yml --data_config ./config/datasets/blindtest.yml --run_config ./config/runs/zero_shot_blindtest.yml
+python run.py test ddG --model_config ./config/models/copra.yml --data_config ./config/datasets/blindtest.yml --run_config ./config/runs/zero_shot_blindtest.yml
 ```
 
 ## 🖌️ Citation

@@ -60,15 +60,15 @@ class LightningRunner(object):
     def select_module(self, stage, log_dir):
         if stage=='pretune':
             model = PretuneModule(output_dir=log_dir, model_args=self.model_args, data_args=self.dataset_args, run_args=self.run_args)
-        elif stage=='finetune':
+        elif stage=='dG':
             model = ModelModule(output_dir=log_dir, model_args=self.model_args, data_args=self.dataset_args, run_args=self.run_args)
-        elif stage=='mutation':
+        elif stage=='ddG':
             model = DDGModule(output_dir=log_dir, model_args=self.model_args, data_args=self.dataset_args, run_args=self.run_args)
         else:
             raise NotImplementedError
         return model
 
-    def finetune(self, stage='finetune'):
+    def finetune(self, stage='dG'):
         print("Run args:", self.run_args, "\n")
         print("Model args:", self.model_args, "\n")
         print("Dataset args:", self.dataset_args, "\n")
@@ -129,7 +129,7 @@ class LightningRunner(object):
         results_df = pd.DataFrame(run_results)
         print(results_df.describe())
 
-    def test(self, stage='mutation'):
+    def test(self, stage='dG'):
         print("Args:", self.run_args, self.dataset_args, self.model_args)
         output_dir, ckpts, gpus = (self.run_args.output_dir, self.run_args.ckpts,
                                    self.run_args.gpus)
