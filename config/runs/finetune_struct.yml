@@ -2,7 +2,7 @@ epochs: 140
 patience: 150
 output_dir: './outputs/esm2rinalmo_650M/scratch/PRA310'
 gpus:
-  - 7
+  - 0
 
 ckpt: null
 
