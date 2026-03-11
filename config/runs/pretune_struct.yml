@@ -4,11 +4,10 @@ patience: 50
 output_dir: './outputs/esm2rinalmo_650M/pretune_struct/esm2rinalmo_650M_cformer_PRI30k_fixed_interface_dist_random_mask0.15_tokenpooling'
 gpus:
   - 0
-  - 1
-  - 2
-  - 3
 ckpt: null
 
 run_name: 'esm2rinalmo_650M_cformer_PRI30k_fixed_interface_dist_random_mask0.15_tokenpooling'
 wandb: false
 num_folds: 1
+precision: 16
+accumulate_grad_batches: 5

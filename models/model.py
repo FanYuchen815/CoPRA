@@ -283,8 +283,9 @@ class ESM2RiNALMo(nn.Module):
                     continue
                 valid = list(range(3, z.shape[1]))
                 mask_indices = random.sample(valid, int(len(valid) * 0.15))
-                z[i, mask_indices, :, :] = self.mask_token.repeat(len(mask_indices), z.shape[2], 1)
-                z[i, :, mask_indices, :] = self.mask_token.repeat(z.shape[1], len(mask_indices), 1)
+                mask_val = self.mask_token.to(z.dtype)
+                z[i, mask_indices, :, :] = mask_val.repeat(len(mask_indices), z.shape[2], 1)
+                z[i, :, mask_indices, :] = mask_val.repeat(z.shape[1], len(mask_indices), 1)
             
         return out_embedding, z, key_padding_mask
         

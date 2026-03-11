@@ -120,10 +120,33 @@ class SelectedRegionWithDistmap(object):
         atoms_dist_min = data['atom_min_dist']
 
         identifier = data['identifier']
-        tmp = atoms_dist_min[identifier==0]
-        interface_distance = tmp[:, identifier==1]
-        prot_min_dist = interface_distance.min(dim=1)[0]
-        rna_min_dist = interface_distance.transpose(0, 1).min(dim=1)[0]
+        prot_mask = identifier == 0
+        na_mask = identifier == 1
+
+        # extract protein-to-NA interface distances; handle cases where one side is empty
+        tmp = atoms_dist_min[prot_mask]
+        if na_mask.sum() == 0 or tmp.numel() == 0:
+            # no NA (or no interface columns) — fall back to nearest non-self distances
+            if tmp.numel() == 0:
+                prot_min_dist = torch.full((prot_mask.sum().item(),), float('inf'), device=atoms_dist_min.device)
+            else:
+                # use min distance to any other residue (excluding same-identifier if possible)
+                other_mask = ~prot_mask
+                if other_mask.sum() == 0:
+                    prot_min_dist = torch.full((prot_mask.sum().item(),), float('inf'), device=atoms_dist_min.device)
+                else:
+                    prot_min_dist = atoms_dist_min[prot_mask][:, other_mask].min(dim=1)[0]
+
+            # no RNA residues present
+            rna_min_dist = torch.empty((0,), device=atoms_dist_min.device)
+        else:
+            interface_distance = tmp[:, na_mask]
+            if interface_distance.numel() == 0 or interface_distance.size(1) == 0:
+                prot_min_dist = torch.full((prot_mask.sum().item(),), float('inf'), device=atoms_dist_min.device)
+                rna_min_dist = torch.empty((0,), device=atoms_dist_min.device)
+            else:
+                prot_min_dist = interface_distance.min(dim=1)[0]
+                rna_min_dist = interface_distance.transpose(0, 1).min(dim=1)[0]
         total_min = torch.cat([prot_min_dist, rna_min_dist], dim=0)
         patch_idx = torch.argsort(total_min)[:self.patch_size]
         patch_idx, _ = torch.sort(patch_idx)

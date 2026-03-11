@@ -68,6 +68,8 @@ class PRI30kDataset(Dataset):
             pdb_path = os.path.join(self.data_root, structure_name)
             
             cplx = _process_structure(pdb_path, structure_id, prot_chains, na_chains, gpu='cuda:0')
+            if cplx is None:
+                return None
             
             ligand_id = row[self.col_prot_name] + '_' + row[self.col_na_chain]
             L = len(cplx['seq'])
@@ -109,10 +111,18 @@ class PRI30kDataset(Dataset):
         return len(self.df)
     
     def __getitem__(self, idx):
-        data = self.load_data(idx)
-        if self.transform is not None:
-            data = self.transform(data)
-        return data
+        # If a sample fails to parse (load_data returns None), try next indices
+        n = len(self.df)
+        start = idx
+        for _ in range(n):
+            data = self.load_data(idx)
+            if data is None:
+                idx = (idx + 1) % n
+                continue
+            if self.transform is not None:
+                data = self.transform(data)
+            return data
+        raise RuntimeError('No valid samples available in dataset')
 
 EXCLUDE_KEYS = []
 DEFAULT_PAD_VALUES = {

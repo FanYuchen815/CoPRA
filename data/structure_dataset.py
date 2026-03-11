@@ -27,7 +27,14 @@ R = DataRegister()
 # ATOM_P, ATOM_C4, ATOM_NB = 37, 38, 
 
 def _process_structure(structure_path, structure_id, valid_prot_chains=None, valid_rna_chains=None, gpu=None) -> Optional[Dict]:
-    cplx = ComplexInput.from_path(structure_path, valid_prot_chains=valid_prot_chains, valid_rna_chains=valid_rna_chains)
+    try:
+        cplx = ComplexInput.from_path(structure_path, valid_prot_chains=valid_prot_chains, valid_rna_chains=valid_rna_chains)
+    except FileNotFoundError:
+        print(f"[WARN] Missing structure file: {structure_path}")
+        return None
+    except Exception as e:
+        print(f"[WARN] Failed to parse structure {structure_path}: {e}")
+        return None
     if cplx is None:
         print(f'[INFO] Failed to parse structure. Too few valid residues: {structure_path}')
         return None
@@ -105,6 +112,10 @@ class StructureDataset(Dataset):
                 label = row[self.col_label]
                 
                 cplx = _process_structure(pdb_path, structure_id, prot_chains, na_chains)
+
+                # skip samples that failed to parse or have too few valid residues
+                if cplx is None:
+                    continue
 
                 if self.mut:
                     prot_mut = row[self.col_mut]

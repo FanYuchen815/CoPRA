@@ -108,7 +108,8 @@ class LightningRunner(object):
                 # gradient_clip_val=self.model_args.train.max_grad_norm if self.model_args.train.max_grad_norm is not None else None,
                 # gradient_clip_algorithm='norm' if self.model_args.train.max_grad_norm is not None else None,
                 strategy=strategy,
-                log_every_n_steps=3,
+                    precision=self.run_args.get('precision', 32),
+                    log_every_n_steps=3,
             )
             trainer.fit(model=model, datamodule=data_module, ckpt_path=self.run_args.ckpt)
             print(f"Training fold {k} Finished!")

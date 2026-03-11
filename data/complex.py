@@ -65,7 +65,44 @@ class ComplexInput:
         # print(valid_prot_chains, valid_rna_chains)
         protein = proteins.ProteinInput.from_path(path, with_angles=False, return_dict=True, valid_chains=valid_prot_chains)
         rna = rnas.RNAInput.from_path(path, valid_rna_chains)
-        complex_dict = complex_merge([protein[chain] for chain in valid_prot_chains], [rna[chain] for chain in valid_rna_chains])
+
+        def _resolve_chains(mapping, requested, molecule_name='chain'):
+            """Resolve requested chain ids against mapping keys using case-insensitive matching.
+
+            Returns list of mapping values in the same order as requested.
+            Raises KeyError with available keys if a requested chain cannot be resolved.
+            """
+            if requested is None:
+                return []
+            resolved = []
+            keys = list(mapping.keys())
+            lower_map = {k.lower(): k for k in keys}
+            for ch in requested:
+                if ch in mapping:
+                    resolved.append(mapping[ch]); continue
+                # try case-insensitive direct match
+                k = lower_map.get(str(ch).lower())
+                if k is not None:
+                    resolved.append(mapping[k]); continue
+                # try upper/lower variants
+                if str(ch).upper() in mapping:
+                    resolved.append(mapping[str(ch).upper()]); continue
+                if str(ch).lower() in mapping:
+                    resolved.append(mapping[str(ch).lower()]); continue
+                raise KeyError(f"Requested {molecule_name} '{ch}' not found in file. Available: {keys}")
+            return resolved
+
+        try:
+            prot_list = _resolve_chains(protein, valid_prot_chains, molecule_name='protein chain')
+            rna_list = _resolve_chains(rna, valid_rna_chains, molecule_name='RNA chain')
+        except KeyError as e:
+            # If requested chains cannot be resolved, return None so callers can skip this sample.
+            print(f"[WARN] Chain resolution failed for {path}: {e}")
+            return None
+        except Exception as e:
+            print(f"[ERROR] Unexpected error resolving chains for {path}: {e}")
+            return None
+        complex_dict = complex_merge(prot_list, rna_list)
         return self(**complex_dict)
     
     @property
