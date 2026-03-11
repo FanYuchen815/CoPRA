@@ -165,7 +165,7 @@ datasets/*
 .vscode
 *.whl
 weights
-RiNALMo
+RiNALMo/
 outputs
 cache
 wandb
