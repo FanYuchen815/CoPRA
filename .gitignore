@@ -173,3 +173,4 @@ wandb
 # code_play.ipynb
 *.ipynb
 hugging_face
+文档/
