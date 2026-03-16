@@ -66,8 +66,34 @@ class PRI30kDataset(Dataset):
         if self.diskcache is None or structure_id not in self.diskcache:
             structure_name = structure_id + '.cif'
             pdb_path = os.path.join(self.data_root, structure_name)
-            
-            cplx = _process_structure(pdb_path, structure_id, prot_chains, na_chains, gpu='cuda:0')
+            # 如果默认路径不存在，尝试若干变体（大小写/仅 pdb id 等）以提高健壮性
+            if not os.path.exists(pdb_path):
+                variants = [
+                    f"{structure_id}.cif",
+                    f"{structure_id.upper()}.cif",
+                    f"{structure_id.lower()}.cif",
+                    f"{row[self.col_prot_name].upper()}_{prot_chains[0]}_{na_chains[0]}.cif",
+                    f"{row[self.col_prot_name].lower()}_{prot_chains[0]}_{na_chains[0]}.cif",
+                    f"{row[self.col_prot_name]}_{prot_chains[0].upper()}_{na_chains[0]}.cif",
+                    f"{row[self.col_prot_name]}_{prot_chains[0].lower()}_{na_chains[0]}.cif",
+                    f"{row[self.col_prot_name]}_{prot_chains[0]}_{na_chains[0].upper()}.cif",
+                    f"{row[self.col_prot_name]}_{prot_chains[0]}_{na_chains[0].lower()}.cif",
+                    f"{row[self.col_prot_name]}.cif",
+                ]
+                found = None
+                for name in variants:
+                    p = os.path.join(self.data_root, name)
+                    if os.path.exists(p):
+                        found = p
+                        break
+                if found is not None:
+                    pdb_path = found
+                    print(f"[WARN] Using variant path for {structure_id}: {pdb_path}")
+                else:
+                    print(f"[WARN] Missing structure file: {pdb_path}")
+
+            # 在 CPU 上解析结构以避免在数据加载阶段占用 GPU 导致训练卡住
+            cplx = _process_structure(pdb_path, structure_id, prot_chains, na_chains, gpu=None)
             if cplx is None:
                 return None
             

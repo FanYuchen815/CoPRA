@@ -1,4 +1,4 @@
-epochs: 140
+epochs: 1
 patience: 150
 output_dir: './outputs/esm2rinalmo_650M/scratch/PRA310'
 gpus:

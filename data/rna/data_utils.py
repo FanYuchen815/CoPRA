@@ -497,11 +497,33 @@ def get_backbone_coords(
     pyrimidine_indices = [i for i, base in enumerate(sequence) if base in PYRIMIDINES]
 
     # create tensor of backbone atoms
-    backbone_tensor = (
-        torch.zeros((atom_tensor.shape[0], len(purine_bb_indices), 3), device=atom_tensor.device) + fill_value
-    ).float()
-    backbone_tensor[purine_indices] = atom_tensor[purine_indices][:, purine_bb_indices, :]
-    backbone_tensor[pyrimidine_indices] = atom_tensor[pyrimidine_indices][:, pyrimidine_bb_indices, :]
+    L = len(sequence)
+    # width chosen as max of the two index lists to accomodate both types
+    width = max(len(purine_bb_indices), len(pyrimidine_bb_indices))
+    backbone_tensor = torch.full((L, width, 3), fill_value, device=atom_tensor.device).float()
+
+    # if atom_tensor has no atom dimension or is empty, return filled backbone
+    if atom_tensor is None or atom_tensor.numel() == 0 or atom_tensor.ndim < 3 or atom_tensor.shape[1] == 0:
+        return backbone_tensor
+
+    n_atoms = atom_tensor.shape[1]
+
+    # assign per-column to avoid indexing into missing atom columns
+    for col_idx, atom_idx in enumerate(purine_bb_indices):
+        if atom_idx < n_atoms and len(purine_indices) > 0:
+            try:
+                backbone_tensor[purine_indices, col_idx, :] = atom_tensor[purine_indices, atom_idx, :]
+            except Exception:
+                # be defensive: skip if shapes mismatch
+                pass
+
+    for col_idx, atom_idx in enumerate(pyrimidine_bb_indices):
+        if atom_idx < n_atoms and len(pyrimidine_indices) > 0:
+            try:
+                backbone_tensor[pyrimidine_indices, col_idx, :] = atom_tensor[pyrimidine_indices, atom_idx, :]
+            except Exception:
+                pass
+
     return backbone_tensor
 
 

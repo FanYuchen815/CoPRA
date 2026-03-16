@@ -27,16 +27,22 @@ R = DataRegister()
 # ATOM_P, ATOM_C4, ATOM_NB = 37, 38, 
 
 def _process_structure(structure_path, structure_id, valid_prot_chains=None, valid_rna_chains=None, gpu=None) -> Optional[Dict]:
+    import logging
+    import contextlib
+    import io
     try:
-        cplx = ComplexInput.from_path(structure_path, valid_prot_chains=valid_prot_chains, valid_rna_chains=valid_rna_chains)
+        # Suppress noisy stdout/stderr from parsers (they often print chain resolution warnings)
+        with open(os.devnull, 'w') as devnull:
+            with contextlib.redirect_stdout(devnull), contextlib.redirect_stderr(devnull):
+                cplx = ComplexInput.from_path(structure_path, valid_prot_chains=valid_prot_chains, valid_rna_chains=valid_rna_chains)
     except FileNotFoundError:
-        print(f"[WARN] Missing structure file: {structure_path}")
+        logging.warning(f"Missing structure file: {structure_path}")
         return None
     except Exception as e:
-        print(f"[WARN] Failed to parse structure {structure_path}: {e}")
+        logging.warning(f"Failed to parse structure {structure_path}: {e}")
         return None
     if cplx is None:
-        print(f'[INFO] Failed to parse structure. Too few valid residues: {structure_path}')
+        # too few valid residues or parsing failed silently
         return None
 
     data = EasyDict({

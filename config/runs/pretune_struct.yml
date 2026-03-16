@@ -1,5 +1,5 @@
 # iters: 30000
-epochs: 100
+epochs: 1
 patience: 50
 output_dir: './outputs/esm2rinalmo_650M/pretune_struct/esm2rinalmo_650M_cformer_PRI30k_fixed_interface_dist_random_mask0.15_tokenpooling'
 gpus:
