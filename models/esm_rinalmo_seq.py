@@ -12,6 +12,7 @@ from models.lora_tune import LoRAESM, LoRARiNALMo, ESMConfig, RiNALMoConfig
 from models.components.valina_transformer import Transformer
 from models.model import cat_pad, segment_cat_pad
 R = ModelRegister()
+from models.components.interaction_adapter import InteractionAdapter
 
 def load_esm(esm_type):
     if esm_type == '650M':
@@ -126,6 +127,18 @@ class ESM2RiNALMo(nn.Module):
             nn.Linear(self.cat_size, self.feat_size), nn.ReLU(),
             nn.Linear(self.feat_size, output_dim) 
             )
+        # optional interaction adapter config
+        ia_cfg = kwargs.get('interaction_adapter', None)
+        if ia_cfg is not None and ia_cfg.get('enable', False):
+            ia_embed = ia_cfg.get('embed_dim', self.feat_size)
+            ia_heads = ia_cfg.get('num_heads', 8)
+            ia_dropout = ia_cfg.get('dropout', 0.0)
+            # adapters for prot->rna and rna->prot when using pooled (vallina) embeddings
+            self.interaction_adapter_prot = InteractionAdapter(ia_embed, ia_heads, ia_dropout)
+            self.interaction_adapter_rna = InteractionAdapter(ia_embed, ia_heads, ia_dropout)
+            self._interaction_enabled = True
+        else:
+            self._interaction_enabled = False
 
     
     def forward(self, input, strategy='separate'):
@@ -161,6 +174,17 @@ class ESM2RiNALMo(nn.Module):
                         prot_embedding = prot_embedding / (prot_mask_sum + 1e-10)
                         na_embedding = na_embedding / (na_mask_sum + 1e-10)
             complex_embedding = torch.cat([prot_embedding, na_embedding], dim=1)
+            # apply lightweight cross-attention between pooled prot and rna embeddings if enabled
+            if self._interaction_enabled:
+                # ensure shape (B, N, E); here prot_embedding/na_embedding are (B, E)
+                p = prot_embedding.unsqueeze(1)
+                r = na_embedding.unsqueeze(1)
+                # use other side as KV
+                p_upd = self.interaction_adapter_prot(p, r, query_mask=None, kv_mask=torch.ones((r.shape[0], r.shape[1]), device=r.device).bool())
+                r_upd = self.interaction_adapter_rna(r, p, query_mask=None, kv_mask=torch.ones((p.shape[0], p.shape[1]), device=p.device).bool())
+                prot_embedding = p_upd.squeeze(1)
+                na_embedding = r_upd.squeeze(1)
+                complex_embedding = torch.cat([prot_embedding, na_embedding], dim=1)
             output = self.cat_pred_head(complex_embedding)
             output = output.squeeze(1)
         else:   

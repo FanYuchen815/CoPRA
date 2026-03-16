@@ -16,6 +16,7 @@ from peft import (
     get_peft_model,
 )
 R = ModelRegister()
+from models.components.interaction_adapter import InteractionAdapter
 
 def load_esm(esm_type):
     if esm_type == '650M':
@@ -195,6 +196,17 @@ class ESM2RiNALMo(nn.Module):
             nn.Linear(pair_dim, self.feat_size), nn.ReLU(),
             nn.Linear(self.feat_size, dist_dim)
         )
+        # optional interaction adapter config (for pooled / token special tokens)
+        ia_cfg = kwargs.get('interaction_adapter', None)
+        if ia_cfg is not None and ia_cfg.get('enable', False):
+            ia_embed = ia_cfg.get('embed_dim', self.complex_dim)
+            ia_heads = ia_cfg.get('num_heads', 8)
+            ia_dropout = ia_cfg.get('dropout', 0.0)
+            self.interaction_adapter_prot = InteractionAdapter(ia_embed, ia_heads, ia_dropout)
+            self.interaction_adapter_rna = InteractionAdapter(ia_embed, ia_heads, ia_dropout)
+            self._interaction_enabled = True
+        else:
+            self._interaction_enabled = False
     
     def _forward(self, input, strategy='separate', need_mask=False):
         prot_input = input['prot']
@@ -295,6 +307,20 @@ class ESM2RiNALMo(nn.Module):
                 
             output, z, attn = self.c_former(out_embedding, z, key_padding_mask=key_padding_mask, need_attn_weights=False)
 
+            # optional interaction on pooled prot/rna tokens when using token pooling
+            if self._interaction_enabled and self.pooling == 'token':
+                try:
+                    p = output[:, 1, :].unsqueeze(1)
+                    r = output[:, 2, :].unsqueeze(1)
+                    p_upd = self.interaction_adapter_prot(p, r, query_mask=None, kv_mask=torch.ones((r.shape[0], r.shape[1]), device=r.device).bool())
+                    r_upd = self.interaction_adapter_rna(r, p, query_mask=None, kv_mask=torch.ones((p.shape[0], p.shape[1]), device=p.device).bool())
+                    # avoid in-place modification of `output` which may be needed for autograd
+                    output = output.clone()
+                    output[:, 1, :] = p_upd.squeeze(1)
+                    output[:, 2, :] = r_upd.squeeze(1)
+                except Exception:
+                    pass
+
             complex_embedding = output + self.z_proj(z).sum(-2) * 0.001
             if self.pooling == 'token':
                 complex_embedding = output[:, 0, :].squeeze(1)
@@ -329,6 +355,14 @@ class ESM2RiNALMo(nn.Module):
                 complex_embedding = output[:, 0, :].squeeze(1)
                 prot_embedding = output[:, 1, :].squeeze(1)
                 rna_embedding = output[:, 2, :].squeeze(1)
+                # apply lightweight cross-attention between pooled prot and rna embeddings if enabled
+                if self._interaction_enabled:
+                    p = prot_embedding.unsqueeze(1)
+                    r = rna_embedding.unsqueeze(1)
+                    p_upd = self.interaction_adapter_prot(p, r, query_mask=None, kv_mask=torch.ones((r.shape[0], r.shape[1]), device=r.device).bool())
+                    r_upd = self.interaction_adapter_rna(r, p, query_mask=None, kv_mask=torch.ones((p.shape[0], p.shape[1]), device=p.device).bool())
+                    prot_embedding = p_upd.squeeze(1)
+                    rna_embedding = r_upd.squeeze(1)
             else:
                 complex_embedding = (output * (~key_padding_mask).unsqueeze(-1)).sum(dim=1)
                 prot_embedding = (output * (~key_padding_mask).unsqueeze(-1) * (1-input['identifier']).unsqueeze(-1)).sum(dim=1)

@@ -16,6 +16,23 @@ from typing import Optional, Dict
 from easydict import EasyDict
 from data.structure_dataset import _process_structure
 
+
+def find_case_insensitive_file(dir_path: str, filename: str):
+    """在目录下按不区分大小写查找文件，返回匹配的第一个真实路径或 None。"""
+    try:
+        target = filename.lower()
+        for f in os.listdir(dir_path):
+            if f.lower() == target:
+                return os.path.join(dir_path, f)
+        # also try matching without extension
+        name_no_ext = os.path.splitext(filename)[0].lower()
+        for f in os.listdir(dir_path):
+            if os.path.splitext(f)[0].lower() == name_no_ext:
+                return os.path.join(dir_path, f)
+    except Exception:
+        return None
+    return None
+
 na_alphabet_config = {
     "standard_tkns": RNA_TOKENS,
     "special_tkns": [CLS_TKN, PAD_TKN, EOS_TKN, UNK_TKN, MASK_TKN],
@@ -90,7 +107,13 @@ class PRI30kDataset(Dataset):
                     pdb_path = found
                     print(f"[WARN] Using variant path for {structure_id}: {pdb_path}")
                 else:
-                    print(f"[WARN] Missing structure file: {pdb_path}")
+                        # try case-insensitive search in data_root
+                        ci = find_case_insensitive_file(self.data_root, os.path.basename(pdb_path))
+                        if ci is not None:
+                            pdb_path = ci
+                            #print(f"[WARN] Using case-insensitive match for {structure_id}: {pdb_path}")
+                        else:
+                            print(f"[WARN] Missing structure file: {pdb_path}")
 
             # 在 CPU 上解析结构以避免在数据加载阶段占用 GPU 导致训练卡住
             cplx = _process_structure(pdb_path, structure_id, prot_chains, na_chains, gpu=None)

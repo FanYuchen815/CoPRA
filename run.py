@@ -102,8 +102,9 @@ class LightningRunner(object):
                 logger=logger,
                 callbacks=[
                     EarlyStopping(monitor="val_loss", mode="min", patience=self.run_args.patience, strict=False),
+                    # Only keep the best checkpoint per fold (do not keep intermediate or `last` checkpoints)
                     ModelCheckpoint(dirpath=(log_dir / 'checkpoint'), filename='{epoch}-{val_loss:.3f}',
-                                    monitor="val_loss", mode="min", save_last=True, save_top_k=3),
+                                    monitor="val_loss", mode="min", save_last=False, save_top_k=1),
                 ],
                 # gradient_clip_val=self.model_args.train.max_grad_norm if self.model_args.train.max_grad_norm is not None else None,
                 # gradient_clip_algorithm='norm' if self.model_args.train.max_grad_norm is not None else None,
