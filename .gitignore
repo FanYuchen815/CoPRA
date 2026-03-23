@@ -170,6 +170,8 @@ outputs
 cache
 wandb
 *.pdb
+# HuggingFace local cache
+hf_cache/
 # code_play.ipynb
 *.ipynb
 hugging_face

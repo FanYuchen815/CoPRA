@@ -13,10 +13,57 @@ from models.components.valina_transformer import Transformer
 from models.model import cat_pad, segment_cat_pad
 R = ModelRegister()
 from models.components.interaction_adapter import InteractionAdapter
+from models.components.ssdn import SSDN
 
 def load_esm(esm_type):
+    import os
+    from pathlib import Path
+    # allow overriding via env var `ESM_LOCAL_WEIGHTS`
+    local_weights = os.environ.get('ESM_LOCAL_WEIGHTS')
+    # default fallback to repository weights folder
+    if local_weights is None:
+        repo_root = Path(__file__).resolve().parents[1]
+        local_weights = str(repo_root / 'weights' / 'esm2_t33_650M_UR50D.pt')
+
     if esm_type == '650M':
+        # If a local checkpoint exists, place it into a local torch hub cache
+        # and point TORCH_HOME there so esm.pretrained will reuse it instead of downloading.
+        try:
+            if os.path.exists(local_weights):
+                repo_root = Path(__file__).resolve().parents[1]
+                cache_root = repo_root / 'hf_cache'
+                checkpoints_dir = cache_root / 'hub' / 'checkpoints'
+                checkpoints_dir.mkdir(parents=True, exist_ok=True)
+                dest = checkpoints_dir / Path(local_weights).name
+                if not dest.exists():
+                    try:
+                        dest.symlink_to(Path(local_weights).resolve())
+                    except Exception:
+                        # fallback to copy if symlink not allowed
+                        import shutil
+                        shutil.copy2(local_weights, str(dest))
+                os.environ['TORCH_HOME'] = str(cache_root)
+                try:
+                    torch.hub.set_dir(str(cache_root / 'hub'))
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
         model, _ = esm.pretrained.esm2_t33_650M_UR50D()
+        # try to load local checkpoint if present (defensive attempt)
+        try:
+            if os.path.exists(local_weights):
+                state = torch.load(local_weights, map_location='cpu')
+                if isinstance(state, dict) and 'model' in state and not any(k.startswith('embed_tokens') for k in state.keys()):
+                    state = state['model']
+                try:
+                    model.load_state_dict(state)
+                except Exception:
+                    if isinstance(state, dict) and 'state_dict' in state:
+                        model.load_state_dict(state['state_dict'])
+        except Exception:
+            pass
     elif esm_type == '3B':
         model, _ = esm.pretrained.esm2_t36_3B_UR50D()
     elif esm_type == '15B':
@@ -77,7 +124,17 @@ class ESM2RiNALMo(nn.Module):
         self.cat_size = esm_feat_size + rinalmo_feat_size
         self.feat_size = rinalmo_feat_size
         self.representation_layer = representation_layer
-        self.transformer = Transformer(**kwargs['transformer'])
+        # Fusion / backbone: support legacy Transformer or new SSDN fusion module
+        fusion_cfg = kwargs.get('fusion', None)
+        if fusion_cfg is not None and fusion_cfg.get('type', '').lower() == 'ssdn':
+            ssdn_layers = fusion_cfg.get('layers', 2)
+            ssdn_heads = fusion_cfg.get('heads', 4)
+            ssdn_pair_dim = fusion_cfg.get('pair_dim', kwargs.get('coformer', {}).get('pair_dim', 40))
+            ssdn_cross_heads = fusion_cfg.get('cross_heads', ssdn_heads)
+            ssdn_dropout = fusion_cfg.get('dropout', 0.0)
+            self.transformer = SSDN(self.complex_dim, ssdn_pair_dim, num_layers=ssdn_layers, num_heads=ssdn_heads, cross_heads=ssdn_cross_heads, dropout=ssdn_dropout)
+        else:
+            self.transformer = Transformer(**kwargs['transformer'])
         self.complex_dim = kwargs['transformer']['embed_dim']
         self.proj_cplx= nn.Linear(self.feat_size, self.complex_dim)
         self.pooling = pooling

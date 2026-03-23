@@ -23,8 +23,15 @@ model:
     residual_dropout: 0.1
     transition_factor: 4
     use_flash_attn: false
+  fusion:
+    type: ssdn
+    layers: 2
+    heads: 4
+    pair_dim: 40
+    cross_heads: 4
+    dropout: 0.0
   interaction_adapter:
-    enable: True
+    enable: false
     embed_dim: 320
     num_heads: 8
     dropout: 0.0

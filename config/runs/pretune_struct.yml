@@ -1,7 +1,21 @@
+output_dir: ./outputs/copra_pretune
+run_name: copra_pretune_ssdn
+num_folds: 1
+epochs: 10
+patience: 5
+gpus: 1
+wandb: false
+ckpt: null
+ckpts: []
+run_name: copra_pretune
+precision: 32
+batch_size: 8
+folds: 1
+# Optional: set ckpt to resume
 # iters: 30000
-epochs: 1
+epochs: 10
 patience: 50
-output_dir: './outputs/esm2rinalmo_650M/pretune_struct/esm2rinalmo_650M_cformer_PRI30k_fixed_interface_dist_random_mask0.15_tokenpooling'
+output_dir: 'outputs/esm2rinalmo_650M/pretune_struct/esm2rinalmo_650M_cformer_PRI30k_fixed_interface_dist_random_mask0.15_tokenpooling/log_fold_0/checkpoint/epoch=9-val_loss=2.013.ckpt'
 gpus:
   - 0
 ckpt: null

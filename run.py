@@ -100,6 +100,7 @@ class LightningRunner(object):
                 # max_steps=self.run_args.iters,
                 max_epochs=self.run_args.epochs,
                 logger=logger,
+                num_sanity_val_steps=0,
                 callbacks=[
                     EarlyStopping(monitor="val_loss", mode="min", patience=self.run_args.patience, strict=False),
                     # Only keep the best checkpoint per fold (do not keep intermediate or `last` checkpoints)
@@ -112,7 +113,24 @@ class LightningRunner(object):
                     precision=self.run_args.get('precision', 32),
                     log_every_n_steps=3,
             )
-            trainer.fit(model=model, datamodule=data_module, ckpt_path=self.run_args.ckpt)
+            # If a checkpoint path is provided, load its weights manually into
+            # the LightningModule with strict=False so we only load matching
+            # parameter tensors (do not restore optimizer/scheduler state).
+            if hasattr(self.run_args, 'ckpt') and self.run_args.ckpt is not None:
+                ckpt_path = self.run_args.ckpt
+                try:
+                    ckpt = torch.load(ckpt_path, map_location='cpu')
+                    state_dict = ckpt.get('state_dict', ckpt)
+                    lsd_result = model.load_state_dict(state_dict, strict=False)
+                    print('Loaded checkpoint weights from %s' % ckpt_path)
+                    print('Missing keys (%d): %s' % (len(lsd_result.missing_keys), ', '.join(lsd_result.missing_keys)))
+                    print('Unexpected keys (%d): %s' % (len(lsd_result.unexpected_keys), ', '.join(lsd_result.unexpected_keys)))
+                except Exception as e:
+                    print('Failed to load checkpoint weights manually:', e)
+
+            # Run training normally; do not pass ckpt_path to Trainer.fit so
+            # Lightning does not attempt to restore optimizer/scheduler state.
+            trainer.fit(model=model, datamodule=data_module)
             print(f"Training fold {k} Finished!")
             trainer.strategy.barrier()
             print("Best Validation Results:")

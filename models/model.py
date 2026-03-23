@@ -5,7 +5,7 @@ from rinalmo.config import model_config
 from rinalmo.model.model import RiNALMo
 from models.encoders.pair import ResiduePairEncoder
 from models.register import ModelRegister
-from models.components.coformer import CoFormer
+from models.components.ssdn import SSDN
 import torch.nn.functional as F
 from models.lora_tune import LoRAESM, LoRARiNALMo, ESMConfig, RiNALMoConfig
 import random
@@ -19,8 +19,50 @@ R = ModelRegister()
 from models.components.interaction_adapter import InteractionAdapter
 
 def load_esm(esm_type):
+    import os
+    from pathlib import Path
+    # allow overriding via env var `ESM_LOCAL_WEIGHTS`
+    local_weights = os.environ.get('ESM_LOCAL_WEIGHTS')
+    if local_weights is None:
+        repo_root = Path(__file__).resolve().parents[1]
+        local_weights = str(repo_root / 'weights' / 'esm2_t33_650M_UR50D.pt')
+
     if esm_type == '650M':
+        # Prepare local torch hub cache if local weights exist, to prevent esm.pretrained from downloading.
+        try:
+            if os.path.exists(local_weights):
+                repo_root = Path(__file__).resolve().parents[1]
+                cache_root = repo_root / 'hf_cache'
+                checkpoints_dir = cache_root / 'hub' / 'checkpoints'
+                checkpoints_dir.mkdir(parents=True, exist_ok=True)
+                dest = checkpoints_dir / Path(local_weights).name
+                if not dest.exists():
+                    try:
+                        dest.symlink_to(Path(local_weights).resolve())
+                    except Exception:
+                        import shutil
+                        shutil.copy2(local_weights, str(dest))
+                os.environ['TORCH_HOME'] = str(cache_root)
+                try:
+                    torch.hub.set_dir(str(cache_root / 'hub'))
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
         model, _ = esm.pretrained.esm2_t33_650M_UR50D()
+        try:
+            if os.path.exists(local_weights):
+                state = torch.load(local_weights, map_location='cpu')
+                if isinstance(state, dict) and 'model' in state and not any(k.startswith('embed_tokens') for k in state.keys()):
+                    state = state['model']
+                try:
+                    model.load_state_dict(state)
+                except Exception:
+                    if isinstance(state, dict) and 'state_dict' in state:
+                        model.load_state_dict(state['state_dict'])
+        except Exception:
+            pass
     elif esm_type == '3B':
         model, _ = esm.pretrained.esm2_t36_3B_UR50D()
     elif esm_type == '15B':
@@ -125,7 +167,29 @@ class ESM2RiNALMo(nn.Module):
         self.esm, esm_feat_size = load_esm(esm_type)
         self.rinalmo, rinalmo_feat_size = load_rinalmo(rinalmo_weights, rinalmo_type)
         self.pair_encoder = ResiduePairEncoder(pair_dim, max_num_atoms=4)  # N, CA, C, O,
-        self.c_former = CoFormer(**kwargs['coformer'])
+        # Fusion: allow replacing CoFormer with SSDN via config 'fusion'
+        fusion_cfg = kwargs.get('fusion', None)
+        if fusion_cfg is not None and fusion_cfg.get('type', '').lower() == 'ssdn':
+            ssdn_layers = fusion_cfg.get('layers', 2)
+            ssdn_heads = fusion_cfg.get('heads', 4)
+            ssdn_pair_dim = fusion_cfg.get('pair_dim', pair_dim)
+            ssdn_cross_heads = fusion_cfg.get('cross_heads', ssdn_heads)
+            ssdn_dropout = fusion_cfg.get('dropout', 0.0)
+            # use configured embed dim from coformer section as complex_dim before it's assigned to self
+            embed_dim_cfg = kwargs.get('coformer', {}).get('embed_dim', None)
+            if embed_dim_cfg is None:
+                embed_dim_cfg = pair_dim
+            self.c_former = SSDN(embed_dim_cfg, ssdn_pair_dim, num_layers=ssdn_layers, num_heads=ssdn_heads, cross_heads=ssdn_cross_heads, dropout=ssdn_dropout)
+        else:
+            # Build SSDN from original CoFormer-style config to preserve behavior
+            coformer_cfg = kwargs.get('coformer', {})
+            embed_dim_cfg = coformer_cfg.get('embed_dim', pair_dim)
+            cf_pair_dim = coformer_cfg.get('pair_dim', pair_dim)
+            cf_num_blocks = coformer_cfg.get('num_blocks', 6)
+            cf_num_heads = coformer_cfg.get('num_heads', 4)
+            cf_cross_heads = coformer_cfg.get('cross_heads', cf_num_heads)
+            cf_dropout = coformer_cfg.get('attention_dropout', 0.0)
+            self.c_former = SSDN(embed_dim_cfg, cf_pair_dim, num_layers=cf_num_blocks, num_heads=cf_num_heads, cross_heads=cf_cross_heads, dropout=cf_dropout)
         self.representation_layer = representation_layer
         self.proj = 0
         if esm_feat_size != rinalmo_feat_size:
